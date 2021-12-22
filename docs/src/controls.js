@@ -19,6 +19,7 @@ window.addEventListener('load', () => {
         }
     };
     const c_to_a = () => [game.current.x, game.current.y, game.current.o, game.current.c];
+    const random_x = () => Math.floor(Math.random() * game.board.width / 2) + 2;
     const clear_lines = (rows) => {
         for (let y = 0; y < game.board.height; y++) {
             if (rows.includes(y)) {
@@ -93,7 +94,7 @@ window.addEventListener('load', () => {
         redraw_score(game);
         game.hold.hold_valid = true;
         game.scoring.move_list.length = 0;
-        game.current.x = Math.floor(Math.random() * game.board.width / 2) + 2;
+        game.current.x = random_x();
         game.current.y = 21;
         game.current.o = 0;
         game.current.c = '';
@@ -231,7 +232,8 @@ window.addEventListener('load', () => {
                         redraw_held(game.hold.held.c);
                         erase();
                         game.current.c = temp;
-                        game.current.y = 21;
+                        game.current.y = spawn_height;
+                        game.current.x = random_x();
                         game.current.o = 0;
                         game.timing.advance = game.timing.drop = game.timing.lock = 0;
                         game.scoring.move_list.length = 0;

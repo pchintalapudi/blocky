@@ -1,5 +1,7 @@
+const max_height = 23;
+const spawn_height = 20;
 const new_game = () => {
-    const width = 10, height = 23;
+    const width = 10, height = max_height;
     function *next_piece() {
         while (true) {
             grab_bag = pieces.map(p => ({p, key:Math.random()})).sort((k1, k2) => k1.key - k2.key).map(({p}) => p);
@@ -17,13 +19,13 @@ const new_game = () => {
         },
         hold: {
             hold_valid: true,
-            held: {x: 0, y:21, o:0, c:''}
+            held: {x: 0, y:spawn_height, o:0, c:''}
         },
         preview: {
             preview: [],
             preview_idx: 0
         },
-        current: {x:2, y:21, o:0, c:''},
+        current: {x:3, y:spawn_height, o:0, c:''},
         scoring: {
             score: 0,
             move_list: [],

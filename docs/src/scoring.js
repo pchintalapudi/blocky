@@ -93,13 +93,13 @@ const score_rows = (board, rows, clear) => {
                 }
                 break;
             case 4:
-                board.scoring.score += 800 * board.scoring.level * (pb2b ? 1.5 : 1);
+                board.scoring.score += 800 * level * (pb2b ? 1.5 : 1);
                 board.scoring.b2b = true;
                 if (clear) {
                     if (pb2b) {
-                        board.scoring.score += 3200 * board.scoring.level;
+                        board.scoring.score += 3200 * level;
                     } else {
-                        board.scoring.score += 2000 * board.scoring.level;
+                        board.scoring.score += 2000 * level;
                     }
                 }
                 break;
