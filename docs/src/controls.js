@@ -122,7 +122,7 @@ window.addEventListener('load', () => {
             erase();
             game.current.y--;
             render();
-            const delay =  compute_time(compute_level(game)) / (accelerate + 1);
+            const delay = compute_time(compute_level(game)) / Math.pow((accelerate + 1), 2);
             game.scoring.score += !!accelerate;
             if (accelerate) {
                 redraw_score(game);

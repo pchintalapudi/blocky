@@ -106,6 +106,7 @@ const score_rows = (board, rows, clear) => {
             default:
                 console.error(`Found ${rows.length} rows were cleared!`);
         }
+        board.scoring.cleared += rows.length;
     } else {
         switch (t) {
             case 0:

@@ -2,6 +2,7 @@ const max_height = 23;
 const spawn_height = 20;
 const new_game = () => {
     const width = 10, height = max_height;
+    const pieces = ['I', 'J', 'L', 'O', 'S', 'T', 'Z'];
     function *next_piece() {
         while (true) {
             grab_bag = pieces.map(p => ({p, key:Math.random()})).sort((k1, k2) => k1.key - k2.key).map(({p}) => p);
@@ -10,7 +11,6 @@ const new_game = () => {
             }
         }
     }
-    const pieces = ['I', 'J', 'L', 'O', 'S', 'T', 'Z'];
     const board = {
         board: {
             width,
@@ -31,7 +31,7 @@ const new_game = () => {
             move_list: [],
             b2b: false,
             combo: -1,
-            cleared: 0
+            cleared: 8
         },
         game: {
             paused: false,
@@ -215,16 +215,8 @@ const hard_drop = (x, y, o, c, board) => {
 
 const compute_level = (board) => {
     const div = Math.floor(board.scoring.cleared / 10);
-    if (div !== div) {
-        console.trace();
-        console.log({div});
-    }
     const root = Math.floor((Math.sqrt(1 + 8 * div) - 1) / 2);
-    if (root !== root) {
-        console.trace();
-        console.log({div, root});
-    }
-    return Math.max(root, 1);
+    return Math.max(root + 1, 1);
 };
 
 const compute_time = (level) => 1000 * Math.pow((0.8 - ((level - 1) * 0.007)), level);
