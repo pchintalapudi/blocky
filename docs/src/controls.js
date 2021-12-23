@@ -2,6 +2,7 @@ window.addEventListener('load', () => {
     let game = new_game();
     let accelerate = false;
     let gameloop_timer = 0;
+    let animation_lock = 0;
     const control_state = {
         new_game: {
             hover: false,
@@ -19,7 +20,7 @@ window.addEventListener('load', () => {
         }
     };
     const c_to_a = () => [game.current.x, game.current.y, game.current.o, game.current.c];
-    const random_x = () => Math.floor(Math.random() * game.board.width / 2) + 2;
+    const spawn_x = (c) => 4 + (c == 'I');
     const clear_lines = (rows) => {
         for (let y = 0; y < game.board.height; y++) {
             if (rows.includes(y)) {
@@ -44,14 +45,17 @@ window.addEventListener('load', () => {
     };
     const defeat = () => {
         console.trace();
-        game.defeated = true;
+        game.game.defeated = true;
         window.clearInterval(gameloop_timer);
-        draw_defeat(game);
+        animation_lock++;
+        draw_defeat(game, () => animation_lock--);
     };
     const advance = () => {
         const time = Date.now();
         game.timing.advance = 0;
         game.current.c = game.preview.preview[game.preview.preview_idx];
+        game.current.x = spawn_x(game.current.c);
+        game.current.y = spawn_height;
         if (game.scoring.combo > -1) {
             redraw_board(game);
         }
@@ -61,6 +65,7 @@ window.addEventListener('load', () => {
         if (!piece_valid(...c_to_a(), game)) {
             defeat();
         } else {
+            render();
             game.timing.drop = time + compute_time(compute_level(game));
         }
     };
@@ -94,8 +99,6 @@ window.addEventListener('load', () => {
         redraw_score(game);
         game.hold.hold_valid = true;
         game.scoring.move_list.length = 0;
-        game.current.x = random_x();
-        game.current.y = 21;
         game.current.o = 0;
         game.current.c = '';
         game.timing.advance = time + compute_time(compute_level(game));
@@ -118,7 +121,7 @@ window.addEventListener('load', () => {
         if (!piece_valid(game.current.x, game.current.y - 1, game.current.o, game.current.c, game)) {
             game.timing.lock = time + 500;
         } else {
-            game.scoring.move_list.push("drop");
+            game.scoring.move_list.push("DROP");
             erase();
             game.current.y--;
             render();
@@ -152,6 +155,8 @@ window.addEventListener('load', () => {
         }
         window.clearInterval(gameloop_timer);
         gameloop_timer = 0;
+        control_state.pause.on = true;
+        redraw_pause(control_state.pause.hover, control_state.pause.active, control_state.pause.on);
     };
     const resume = () => {
         const time = Date.now();
@@ -164,6 +169,8 @@ window.addEventListener('load', () => {
             game.timing.lock += time;
         }
         gameloop_timer = window.setInterval(gameloop, 15);
+        control_state.pause.on = false;
+        redraw_pause(control_state.pause.hover, control_state.pause.active, control_state.pause.on);
     };
     const start = () => {
         if (game.game.paused) {
@@ -180,132 +187,139 @@ window.addEventListener('load', () => {
         window.clearInterval(gameloop_timer);
         gameloop_timer = window.setInterval(gameloop, 15);
     };
-    document.addEventListener('keyup', ev => {
-        if (ev.ctrlKey || ev.altKey || ev.shiftKey || ev.metaKey || game.game.paused || game.game.defeated) {
-            return;
-        }
-        switch (ev.key) {
-            case 's':
-                accelerate = false;
-                break;
-        }
-    });
-    document.addEventListener('keydown', ev => {
-        if (ev.ctrlKey || ev.altKey || ev.shiftKey || ev.metaKey || game.game.paused || game.game.defeated) {
-            return;
-        }
-        switch (ev.key) {
-            case 'a':
-                if (game.current.c) {
-                    if (piece_valid(game.current.x - 1, game.current.y, game.current.o, game.current.c, game)) {
-                        game.scoring.move_list.push(ev.key);
-                        erase();
-                        game.current.x--;
-                        render();
-                        if (game.timing.lock) {
-                            game.timing.lock = 0;
-                            game.timing.drop = Date.now() + 500;
-                        }
-                    }
+    const piece_exists = (action) => () => game.current.c && action();
+    const actions = {
+        start_soft_drop: () => accelerate = true,
+        stop_soft_drop: () => accelerate = false,
+        hard_drop: piece_exists(() => {
+            game.scoring.move_list.push("HARDDROP");
+            const prev = game.current.y;
+            erase();
+            game.current.y = hard_drop(...c_to_a(), game);
+            render();
+            game.scoring.score += 2 * (prev - game.current.y);
+            redraw_score(game);
+            game.timing.advance = game.timing.drop = game.timing.lock = 0;
+            lock();
+        }),
+        move_left: piece_exists(() => {
+            if (piece_valid(game.current.x - 1, game.current.y, game.current.o, game.current.c, game)) {
+                game.scoring.move_list.push("MOVELEFT");
+                erase();
+                game.current.x--;
+                render();
+                if (game.timing.lock) {
+                    game.timing.lock = 0;
+                    game.timing.drop = Date.now() + 500;
                 }
-                break;
-            case 'd':
-                if (game.current.c) {
-                    if (piece_valid(game.current.x + 1, game.current.y, game.current.o, game.current.c, game)) {
-                        game.scoring.move_list.push(ev.key);
-                        erase();
-                        game.current.x++;
-                        render();
-                        if (game.timing.lock) {
-                            game.timing.lock = 0;
-                            game.timing.drop = Date.now() + 500;
-                        }
-                    }
+            }
+        }),
+        move_right: piece_exists(() => {
+            if (piece_valid(game.current.x + 1, game.current.y, game.current.o, game.current.c, game)) {
+                game.scoring.move_list.push("MOVERIGHT");
+                erase();
+                game.current.x++;
+                render();
+                if (game.timing.lock) {
+                    game.timing.lock = 0;
+                    game.timing.drop = Date.now() + 500;
                 }
-                break;
-            case 'w':
-                if (game.current.c) {
-                    if (game.hold.hold_valid) {
-                        game.hold.hold_valid = false;
-                        const temp = game.hold.held.c;
-                        game.hold.held.c = game.current.c;
-                        redraw_held(game.hold.held.c);
-                        erase();
-                        game.current.c = temp;
-                        game.current.y = spawn_height;
-                        game.current.x = random_x();
-                        game.current.o = 0;
-                        game.timing.advance = game.timing.drop = game.timing.lock = 0;
-                        game.scoring.move_list.length = 0;
-                        if (!game.current.c) {
-                            advance();
-                        } else if (!piece_valid(...c_to_a(), game)) {
-                            defeat();
-                        } else {
-                            drop();
-                        }
-                    }
+            }
+        }),
+        rotate_ccw: piece_exists(() => {
+            [x, y, o] = rotate(...c_to_a(), -1, game);
+            if (o != game.current.o) {
+                game.scoring.move_list.push("ROTATECCW");
+                erase();
+                game.current.x = x;
+                game.current.y = y;
+                game.current.o = o;
+                render();
+                if (game.timing.lock) {
+                    game.timing.lock = 0;
+                    game.timing.drop = Date.now() + 500;
                 }
-                break;
-            case 's':
-                accelerate = true;
-                break;
-            case ' ':
-                if (game.current.c) {
-                    game.scoring.move_list.push(ev.key);
-                    const prev = game.current.y;
-                    erase();
-                    game.current.y = hard_drop(...c_to_a(), game);
-                    render();
-                    game.scoring.score += 2 * (prev - game.current.y);
-                    redraw_score(game);
-                    game.timing.advance = game.timing.drop = game.timing.lock = 0;
-                    lock();
+            }
+        }),
+        rotate_cw: piece_exists(() => {
+            [x, y, o] = rotate(...c_to_a(), 1, game);
+            if (o != game.current.o) {
+                game.scoring.move_list.push("ROTATECW");
+                erase();
+                game.current.x = x;
+                game.current.y = y;
+                game.current.o = o;
+                render();
+                if (game.timing.lock) {
+                    game.timing.lock = 0;
+                    game.timing.drop = Date.now() + 500;
                 }
-                break;
-            case 'q':
+            }
+        }),
+        hold: piece_exists(() => {
+            if (game.hold.hold_valid) {
+                game.hold.hold_valid = false;
+                const temp = game.hold.held.c;
+                game.hold.held.c = game.current.c;
+                redraw_held(game.hold.held.c);
+                erase();
+                game.current.c = temp;
+                game.current.y = spawn_height;
+                game.current.o = 0;
+                game.timing.advance = game.timing.drop = game.timing.lock = 0;
+                game.scoring.move_list.length = 0;
                 if (game.current.c) {
-                    [x, y, o] = rotate(...c_to_a(), -1, game);
-                    if (o != game.current.o) {
-                        game.scoring.move_list.push(ev.key);
-                        erase();
-                        game.current.x = x;
-                        game.current.y = y;
-                        game.current.o = o;
-                        render();
-                        if (game.timing.lock) {
-                            game.timing.lock = 0;
-                            game.timing.drop = Date.now() + 500;
-                        }
-                    }
+                    game.current.x = spawn_x(game.current.c);
                 }
-                break;
-            case 'e':
-                if (game.current.c) {
-                    [x, y, o] = rotate(...c_to_a(), 1, game);
-                    if (o != game.current.o) {
-                        game.scoring.move_list.push(ev.key);
-                        erase();
-                        game.current.x = x;
-                        game.current.y = y;
-                        game.current.o = o;
-                        render();
-                        if (game.timing.lock) {
-                            game.timing.lock = 0;
-                            game.timing.drop = Date.now() + 500;
-                        }
-                    }
+                if (!game.current.c) {
+                    advance();
+                } else if (!piece_valid(...c_to_a(), game)) {
+                    defeat();
+                } else {
+                    drop();
                 }
-                break;
-            default:
-                return;
-        }
-    });
+            }
+        }),
+        pause: () => (control_state.pause.on ? resume : pause)(),
+    };
+    down_keybinds = new Map([
+        ['ArrowUp', actions.rotate_cw],
+        ['KeyX', actions.rotate_cw],
+        ['Space', actions.hard_drop],
+        ['ArrowDown', actions.start_soft_drop],
+        ['ShiftLeft', actions.hold],
+        ['ShiftRight', actions.hold],
+        ['KeyC', actions.hold],
+        ['ControlLeft', actions.rotate_ccw],
+        ['ControlRight', actions.rotate_ccw],
+        ['KeyZ', actions.rotate_ccw],
+        ['Escape', actions.pause],
+        ['F1', actions.pause],
+        ['ArrowLeft', actions.move_left],
+        ['ArrowRight', actions.move_right],
+        //Numpad controls
+        ['Numpad0', actions.hold],
+        ['Numpad1', actions.rotate_cw],
+        ['Numpad2', actions.start_soft_drop],
+        ['Numpad3', actions.rotate_ccw],
+        ['Numpad4', actions.move_left],
+        ['Numpad5', actions.rotate_cw],
+        ['Numpad6', actions.move_right],
+        ['Numpad7', actions.rotate_ccw],
+        ['Numpad8', actions.hard_drop],
+        ['Numpad9', actions.rotate_cw],
+    ]);
+    up_keybinds = new Map([['ArrowDown', actions.stop_soft_drop], ['Numpad2', actions.stop_soft_drop]]);
+    document.addEventListener('keyup', ev => !game.game.paused && !game.game.defeated && up_keybinds.has(ev.code) && up_keybinds.get(ev.code)());
+    document.addEventListener('keydown', ev => !game.game.paused && !game.game.defeated && down_keybinds.has(ev.code) && down_keybinds.get(ev.code)());
     const canvas = document.getElementById('gameboard');
     canvas.addEventListener('pointerdown', ev => {
         control_state.mouse.x = ev.offsetX;
         control_state.mouse.y = ev.offsetY;
         control_state.mouse.down = true;
+        if (animation_lock) {
+            return;
+        }
         const ing = intersects_new_game(control_state.mouse.x, control_state.mouse.y), ip = intersects_pause(control_state.mouse.x, control_state.mouse.y);
         if (ip && (!control_state.pause.hover || !control_state.pause.active)) {
             control_state.pause.hover = ip;
@@ -322,13 +336,14 @@ window.addEventListener('load', () => {
         control_state.mouse.x = ev.offsetX;
         control_state.mouse.y = ev.offsetY;
         control_state.mouse.down = false;
+        if (animation_lock) {
+            return;
+        }
         const ing = intersects_new_game(control_state.mouse.x, control_state.mouse.y), ip = intersects_pause(control_state.mouse.x, control_state.mouse.y);
         if (ip && control_state.pause.active) {
             control_state.pause.hover = ip;
             control_state.pause.active = control_state.mouse.down;
-            (control_state.pause.on ? resume : pause)();
-            control_state.pause.on = !control_state.pause.on;
-            redraw_pause(control_state.pause.hover, control_state.pause.active, control_state.pause.on);
+            actions.pause();
         }
         if (ing && control_state.new_game.active) {
             control_state.new_game.hover = ing;
@@ -340,6 +355,9 @@ window.addEventListener('load', () => {
     canvas.addEventListener('pointermove', ev => {
         control_state.mouse.x = ev.offsetX;
         control_state.mouse.y = ev.offsetY;
+        if (animation_lock) {
+            return;
+        }
         const ing = intersects_new_game(control_state.mouse.x, control_state.mouse.y), ip = intersects_pause(control_state.mouse.x, control_state.mouse.y);
         if (ip != control_state.pause.hover || ip && control_state.mouse.down != control_state.pause.active) {
             control_state.pause.hover = ip;

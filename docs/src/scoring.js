@@ -1,6 +1,6 @@
 const t_spin = (board) => {
     if (board.current.c == 'T') {
-        if (board.scoring.move_list.length && ["KeyQ", "KeyE"].includes(board.scoring.move_list[board.scoring.move_list.length - 1])) {
+        if (board.scoring.move_list.length && ["ROTATECCW", "ROTATECW"].includes(board.scoring.move_list[board.scoring.move_list.length - 1])) {
             switch (board.current.o) {
                 case 0:
                     //x +/- 1, y + 1

@@ -1,7 +1,7 @@
-const max_height = 23;
-const spawn_height = 20;
+const spawn_row = 20;
+const spawn_height = spawn_row - 1;
 const new_game = () => {
-    const width = 10, height = max_height;
+    const width = 10, height = spawn_row + 1;
     const pieces = ['I', 'J', 'L', 'O', 'S', 'T', 'Z'];
     function *next_piece() {
         while (true) {
@@ -25,7 +25,7 @@ const new_game = () => {
             preview: [],
             preview_idx: 0
         },
-        current: {x:3, y:spawn_height, o:0, c:''},
+        current: {x:0, y:spawn_height, o:0, c:''},
         scoring: {
             score: 0,
             move_list: [],

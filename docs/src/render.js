@@ -6,6 +6,7 @@ const drawOptions = {
     gameWidth: 300,
     ng_bounds: { x: 20, y: 180, w: 110, h: 55 },
     pause_bounds: { x: 20, y: 260, w: 110, h: 55 },
+    font: "Rubik, sans-serif"
 };
 
 const get_color = (c) => {
@@ -80,7 +81,7 @@ const redraw_backing = () => {
     ctx.fillStyle = 'white';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = 'bold 35px ui-monospace';
+    ctx.font = `bold 35px ${drawOptions.font}`;
     ctx.fillText('Preview', drawOptions.controlsWidth / 2, 30);
     ctx.fillText('Held', drawOptions.controlsWidth + drawOptions.gameWidth + drawOptions.controlsWidth / 2, 30);
     redraw_logo();
@@ -96,7 +97,7 @@ const redraw_preview = (board) => {
 };
 const redraw_level = (level) => {
     const ctx = canvas.getContext('2d');
-    ctx.font = 'bold 72px ui-monospace';
+    ctx.font = `bold 72px ${drawOptions.font}`;
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'center'
     ctx.fillStyle = rasterize(get_color(''));
@@ -118,7 +119,7 @@ const redraw_held = (c) => {
 const redraw_score = (board) => {
     redraw_level(compute_level(board));
     const ctx = canvas.getContext('2d');
-    ctx.font = '24px ui-monospace';
+    ctx.font = `24px ${drawOptions.font}`;
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'center'
     ctx.fillStyle = rasterize(get_color(''));
@@ -133,7 +134,7 @@ const redraw_ng = (hover, active) => {
     ctx.fillStyle = rasterize([hover + active, hover + active, hover + active], 1 / 10);
     ctx.fillRect(drawOptions.ng_bounds.x, drawOptions.ng_bounds.y, drawOptions.ng_bounds.w, drawOptions.ng_bounds.h);
     ctx.strokeRect(drawOptions.ng_bounds.x, drawOptions.ng_bounds.y, drawOptions.ng_bounds.w, drawOptions.ng_bounds.h);
-    ctx.font = "bold 25px ui-monospace";
+    ctx.font = `bold 25px ${drawOptions.font}`;
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'center'
     ctx.fillStyle = ctx.strokeStyle;
@@ -145,7 +146,7 @@ const redraw_pause = (hover, active, on) => {
     ctx.fillStyle = rasterize([hover + active, hover + active, hover + active], 1 / 10);
     ctx.fillRect(drawOptions.pause_bounds.x, drawOptions.pause_bounds.y, drawOptions.pause_bounds.w, drawOptions.pause_bounds.h);
     ctx.strokeRect(drawOptions.pause_bounds.x, drawOptions.pause_bounds.y, drawOptions.pause_bounds.w, drawOptions.pause_bounds.h);
-    ctx.font = "bold 25px ui-monospace";
+    ctx.font = `bold 25px ${drawOptions.font}`;
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'center'
     ctx.fillStyle = ctx.strokeStyle;
@@ -155,7 +156,7 @@ const redraw_pause = (hover, active, on) => {
 const intersects_new_game = (mx, my) => mx >= drawOptions.ng_bounds.x && mx < drawOptions.ng_bounds.x + drawOptions.ng_bounds.w && my >= drawOptions.ng_bounds.y && my < drawOptions.ng_bounds.y + drawOptions.ng_bounds.h;
 const intersects_pause = (mx, my) => mx >= drawOptions.pause_bounds.x && mx < drawOptions.pause_bounds.x + drawOptions.pause_bounds.w && my >= drawOptions.pause_bounds.y && my < drawOptions.pause_bounds.y + drawOptions.pause_bounds.h;
 
-const draw_defeat = (board) => {
+const draw_defeat = (board, onfinish) => {
     const pieces = [];
     for (let y = 0; y < board.board.height; y++) {
         for (let x = 0; x < board.board.width; x++) {
@@ -163,8 +164,8 @@ const draw_defeat = (board) => {
         }
     }
     pieces.sort((k1, k2) => k1.key - k2.key);
-    let hide_timer = 0;
-    hide_timer = window.setInterval(() => {
+    const interval = 4;
+    const hide_timer = window.setInterval(() => {
         const [x, y] = pieces.pop().coord;
         draw_cell(x, y, "DEFEAT");
         if (!pieces.length) {
@@ -172,14 +173,15 @@ const draw_defeat = (board) => {
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = 'black';
             ctx.fillRect(drawOptions.controlsWidth, 0, drawOptions.scale * board.board.width, drawOptions.scale * board.board.height);
-            ctx.font = "bold 50px ui-monospace";
+            ctx.font = `bold 50px ${drawOptions.font}`;
             ctx.fillStyle = '#ff0000';
             ctx.textBaseline = 'middle';
             ctx.textAlign = 'center'
             ctx.fillText("GAME", drawOptions.controlsWidth + drawOptions.gameWidth / 2, 50);
             ctx.fillText("OVER", drawOptions.controlsWidth + drawOptions.gameWidth / 2, 100);
+            onfinish();
         }
-    }, 4);
+    }, interval);
 };
 
 window.addEventListener('load', () => {
